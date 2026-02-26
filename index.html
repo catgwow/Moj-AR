@@ -8,9 +8,9 @@
   <body style="margin: 0; overflow: hidden;">
     <a-scene 
       embedded 
-      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3; patternRatio: 0.5;">
+      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;">
       
-      <a-marker type="pattern" url="Marker.patt">
+      <a-marker preset="hiro">
         
         <a-entity 
           gltf-model="Cat.glb" 
@@ -32,14 +32,6 @@
           scale="0.15 0.15 0.15" 
           rotation="0 45 0" 
           animation="property: position; to: 0.7 1.0 0.4; dur: 1500; dir: alternate; loop: true">
-        </a-entity>
-
-        <a-entity 
-          gltf-model="Fish.glb" 
-          position="0 1.5 -0.8" 
-          scale="0.2 0.2 0.2" 
-          rotation="0 180 0" 
-          animation="property: position; to: 0 1.8 -0.8; dur: 1000; dir: alternate; loop: true">
         </a-entity>
 
       </a-marker>
