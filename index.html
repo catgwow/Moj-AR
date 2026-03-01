@@ -2,78 +2,108 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <title>AR Cat Catcher Pro</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+    
     <script>
-      // Složena logika za nasumičnu kišu i detekciju sudara
-      AFRAME.registerComponent('pro-igra', {
+      // KOMPLEKSNA LOGIKA IGRICE
+      AFRAME.registerComponent('game-engine', {
         init: function () {
-          this.maca = document.querySelector('#maca');
-          // Skok na dodir ekrana
-          window.addEventListener('mousedown', () => {
-            this.maca.emit('skok_start');
+          this.maca = document.querySelector('#glavna-maca');
+          this.marker = document.querySelector('a-marker');
+          this.isJumping = false;
+          this.score = 0;
+
+          // Detekcija klika za SKOK
+          window.addEventListener('touchstart', (e) => {
+            if (!this.isJumping) {
+              this.isJumping = true;
+              this.maca.emit('pokreniSkok');
+              // Resetuj status skoka nakon završetka animacije (700ms)
+              setTimeout(() => { this.isJumping = false; }, 700);
+            }
           });
+          console.log("Igrica je inicijalizovana!");
         },
-        tick: function () {
-          let ribe = document.querySelectorAll('.riba');
+
+        tick: function (time, timeDelta) {
+          // Svaki frejm proveravamo pozicije za "lov"
+          let ribe = document.querySelectorAll('.padajuca-riba');
           let macaPos = new THREE.Vector3();
           this.maca.object3D.getWorldPosition(macaPos);
 
           ribe.forEach((riba) => {
+            if (!riba.getAttribute('visible')) return;
+
             let ribaPos = new THREE.Vector3();
             riba.object3D.getWorldPosition(ribaPos);
-            
-            // Provera udaljenosti (0.4 je zona hvatanja)
-            let dist = macaPos.distanceTo(ribaPos);
-            if (dist < 0.4 && riba.getAttribute('visible')) {
-              riba.setAttribute('visible', false);
+
+            // Rastojanje između mace i ribe
+            let distance = macaPos.distanceTo(ribaPos);
+
+            // Ako je maca blizu ribe (0.5 jedinica), riba nestaje
+            if (distance < 0.5) {
+              riba.setAttribute('visible', 'false');
+              this.score++;
+              console.log("Pojeo si ribu! Skor: " + this.score);
               
-              // Resetovanje ribe na vrh nakon što je pojedena
+              // Ponovo stvori ribu na vrhu nakon 1.5 sekundi
               setTimeout(() => {
                 this.resetRiba(riba);
-              }, 500);
+              }, 1500);
             }
           });
         },
+
         resetRiba: function (riba) {
-          // Nasumična pozicija odozgo (X od -1 do 1, Z od -1 do 1)
-          let x = (Math.random() - 0.5) * 3;
-          let z = (Math.random() - 0.5) * 3;
-          riba.setAttribute('position', {x: x, y: 4, z: z});
-          riba.setAttribute('visible', true);
+          // Nasumična pozicija odozgo (X i Z ose)
+          let randomX = (Math.random() - 0.5) * 4;
+          let randomZ = (Math.random() - 0.5) * 4;
+          riba.setAttribute('position', {x: randomX, y: 5, z: randomZ});
+          riba.setAttribute('visible', 'true');
         }
       });
     </script>
   </head>
+
   <body style="margin: 0; overflow: hidden;">
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" pro-igra>
-      
+    <a-scene 
+      embedded 
+      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: fht16_3x3;"
+      game-engine>
+
       <a-marker preset="hiro">
         
-        <a-entity id="maca-wrapper" position="0 -2 1.2">
+        <a-entity id="maca-nivo-stola" position="0 -2.5 1.5">
           <a-entity 
-            id="maca"
+            id="glavna-maca"
             gltf-model="Cat.glb" 
-            scale="0.8 0.8 0.8" 
+            scale="0.9 0.9 0.9" 
             rotation="0 180 0"
-            animation__skok="property: position; from: 0 0 0; to: 0 1.5 0; dur: 350; dir: alternate; loop: 1; startEvents: skok_start">
+            animation__skok="property: position; from: 0 0 0; to: 0 2 0; dur: 350; dir: alternate; loop: 1; startEvents: pokreniSkok; easing: easeOutQuad">
           </a-entity>
         </a-entity>
 
-        <a-entity class="riba" gltf-model="Fish.glb" scale="0.003 0.003 0.003" position="-1 4 -1"
-          animation="property: position; to: -1 -2 -1; dur: 2000; loop: true; easing: linear">
+        <a-entity class="padajuca-riba" gltf-model="Fish.glb" scale="0.003 0.003 0.003" position="-1.5 5 -1"
+          animation="property: position; to: -1.5 -3 -1; dur: 2500; loop: true; easing: linear">
         </a-entity>
 
-        <a-entity class="riba" gltf-model="Fish.glb" scale="0.003 0.003 0.003" position="1 4 0.5"
-          animation="property: position; to: 1 -2 0.5; dur: 2500; loop: true; easing: linear">
+        <a-entity class="padajuca-riba" gltf-model="Fish.glb" scale="0.003 0.003 0.003" position="1.5 6 0.5"
+          animation="property: position; to: 1.5 -3 0.5; dur: 3000; delay: 500; loop: true; easing: linear">
         </a-entity>
 
-        <a-entity class="riba" gltf-model="Fish.glb" scale="0.003 0.003 0.003" position="0 4 -2"
-          animation="property: position; to: 0 -2 -2; dur: 1800; loop: true; easing: linear">
+        <a-entity class="padajuca-riba" gltf-model="Fish.glb" scale="0.003 0.003 0.003" position="0 5.5 -2"
+          animation="property: position; to: 0 -3 -2; dur: 2200; delay: 200; loop: true; easing: linear">
         </a-entity>
 
-        <a-entity class="riba" gltf-model="Fish.glb" scale="0.003 0.003 0.003" position="0.5 4 1"
-          animation="property: position; to: 0.5 -2 1; dur: 2200; loop: true; easing: linear">
+        <a-entity class="padajuca-riba" gltf-model="Fish.glb" scale="0.003 0.003 0.003" position="0.8 7 1.5"
+          animation="property: position; to: 0.8 -3 1.5; dur: 3500; delay: 800; loop: true; easing: linear">
+        </a-entity>
+
+        <a-entity class="padajuca-riba" gltf-model="Fish.glb" scale="0.003 0.003 0.003" position="-0.8 5 2"
+          animation="property: position; to: -0.8 -3 2; dur: 2800; delay: 1000; loop: true; easing: linear">
         </a-entity>
 
       </a-marker>
