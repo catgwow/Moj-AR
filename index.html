@@ -6,41 +6,53 @@
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
   </head>
   <body style="margin: 0; overflow: hidden;">
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; smooth: true; smoothCount: 10; smoothTolerance: 0.01; smoothThreshold: 5;">
       
       <a-marker preset="hiro">
         
-        <a-entity id="maca-container" position="0 -2 1.5">
-          <a-entity 
-            id="maca"
-            gltf-model="Cat.glb" 
-            scale="1 1 1" 
-            rotation="0 180 0"
-            animation="property: position; from: 0 0 0; to: 0 1.8 0; dur: 400; dir: alternate; loop: 1; startEvents: click">
-          </a-entity>
+        <a-entity id="centar"></a-entity>
+
+        <a-entity 
+          id="maca"
+          gltf-model="Cat.glb" 
+          scale="1.1 1.1 1.1" 
+          position="0 -2 2" 
+          rotation="0 180 0"
+          animation__jump="property: position; from: 0 -2 2; to: 0 0 2; dur: 400; dir: alternate; loop: 1; startEvents: click">
         </a-entity>
 
-        <a-entity gltf-model="Fish.glb" scale="0.004 0.004 0.004" position="-1.2 4 -1"
-          animation="property: position; to: 0.5 -2 1.5; dur: 2200; loop: true; easing: linear">
+        <a-entity gltf-model="Fish.glb" scale="0.004 0.004 0.004" position="-1.5 4 -1"
+          animation="property: position; to: -1.5 -2 2; dur: 2000; loop: true; easing: linear">
         </a-entity>
 
-        <a-entity gltf-model="Fish.glb" scale="0.004 0.004 0.004" position="1.2 5 0"
-          animation="property: position; to: -0.5 -2 1; dur: 2800; loop: true; easing: linear">
+        <a-entity gltf-model="Fish.glb" scale="0.004 0.004 0.004" position="1.5 5 0"
+          animation="property: position; to: 1.5 -2 2; dur: 2800; loop: true; easing: linear">
         </a-entity>
 
         <a-entity gltf-model="Fish.glb" scale="0.004 0.004 0.004" position="0 3.5 -2"
-          animation="property: position; to: 0 -2 0.5; dur: 1800; loop: true; easing: linear">
+          animation="property: position; to: 0 -2 2; dur: 1800; loop: true; easing: linear">
         </a-entity>
 
       </a-marker>
 
       <a-entity camera></a-entity>
     </a-scene>
-    
+
     <script>
-      // Jednostavan trik da klik proradi na celom ekranu
+      // SKRIPTA ZA JURENJE RIBICA: Mačka prati nagib telefona
       document.body.addEventListener('click', function () {
         document.querySelector('#maca').emit('click');
+      });
+
+      // Dinamičko pomeranje mace levo-desno kako okrećeš telefon
+      window.addEventListener('deviceorientation', function(event) {
+        var maca = document.querySelector('#maca');
+        if(maca) {
+          var tilt = event.gamma; // Nagib telefona levo-desno
+          var moveX = tilt / 20; // Prilagođavanje brzine pomeranja
+          var currentPos = maca.getAttribute('position');
+          maca.setAttribute('position', {x: moveX, y: currentPos.y, z: currentPos.z});
+        }
       });
     </script>
   </body>
