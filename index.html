@@ -4,33 +4,81 @@
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+    <script>
+      // Složena logika za nasumičnu kišu i detekciju sudara
+      AFRAME.registerComponent('pro-igra', {
+        init: function () {
+          this.maca = document.querySelector('#maca');
+          // Skok na dodir ekrana
+          window.addEventListener('mousedown', () => {
+            this.maca.emit('skok_start');
+          });
+        },
+        tick: function () {
+          let ribe = document.querySelectorAll('.riba');
+          let macaPos = new THREE.Vector3();
+          this.maca.object3D.getWorldPosition(macaPos);
+
+          ribe.forEach((riba) => {
+            let ribaPos = new THREE.Vector3();
+            riba.object3D.getWorldPosition(ribaPos);
+            
+            // Provera udaljenosti (0.4 je zona hvatanja)
+            let dist = macaPos.distanceTo(ribaPos);
+            if (dist < 0.4 && riba.getAttribute('visible')) {
+              riba.setAttribute('visible', false);
+              
+              // Resetovanje ribe na vrh nakon što je pojedena
+              setTimeout(() => {
+                this.resetRiba(riba);
+              }, 500);
+            }
+          });
+        },
+        resetRiba: function (riba) {
+          // Nasumična pozicija odozgo (X od -1 do 1, Z od -1 do 1)
+          let x = (Math.random() - 0.5) * 3;
+          let z = (Math.random() - 0.5) * 3;
+          riba.setAttribute('position', {x: x, y: 4, z: z});
+          riba.setAttribute('visible', true);
+        }
+      });
+    </script>
   </head>
   <body style="margin: 0; overflow: hidden;">
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" pro-igra>
       
       <a-marker preset="hiro">
         
-        <a-entity 
-          id="maca"
-          gltf-model="Cat.glb" 
-          scale="0.6 0.6 0.6" 
-          position="0 -1.5 0.5" 
-          rotation="0 180 0"
-          animation="property: position; to: 0 -0.8 0.5; dur: 500; dir: alternate; loop: true; easing: easeInOutQuad; startEvents: click">
+        <a-entity id="maca-wrapper" position="0 -2 1.2">
+          <a-entity 
+            id="maca"
+            gltf-model="Cat.glb" 
+            scale="0.8 0.8 0.8" 
+            rotation="0 180 0"
+            animation__skok="property: position; from: 0 0 0; to: 0 1.5 0; dur: 350; dir: alternate; loop: 1; startEvents: skok_start">
           </a-entity>
-
-        <a-entity gltf-model="Fish.glb" scale="0.004 0.004 0.004" position="-0.8 2 -1"
-          animation="property: position; to: 0 -1.5 0.5; dur: 1000; loop: true; easing: linear">
         </a-entity>
 
-        <a-entity gltf-model="Fish.glb" scale="0.004 0.004 0.004" position="0.8 1.5 -1.5"
-          animation="property: position; to: 0 -1.5 0.5; dur: 1300; delay: 300; loop: true; easing: linear">
+        <a-entity class="riba" gltf-model="Fish.glb" scale="0.003 0.003 0.003" position="-1 4 -1"
+          animation="property: position; to: -1 -2 -1; dur: 2000; loop: true; easing: linear">
+        </a-entity>
+
+        <a-entity class="riba" gltf-model="Fish.glb" scale="0.003 0.003 0.003" position="1 4 0.5"
+          animation="property: position; to: 1 -2 0.5; dur: 2500; loop: true; easing: linear">
+        </a-entity>
+
+        <a-entity class="riba" gltf-model="Fish.glb" scale="0.003 0.003 0.003" position="0 4 -2"
+          animation="property: position; to: 0 -2 -2; dur: 1800; loop: true; easing: linear">
+        </a-entity>
+
+        <a-entity class="riba" gltf-model="Fish.glb" scale="0.003 0.003 0.003" position="0.5 4 1"
+          animation="property: position; to: 0.5 -2 1; dur: 2200; loop: true; easing: linear">
         </a-entity>
 
       </a-marker>
 
-      <a-entity camera cursor="rayOrigin: mouse"></a-entity>
+      <a-entity camera></a-entity>
     </a-scene>
   </body>
 </html>
