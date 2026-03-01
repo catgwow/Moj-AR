@@ -1,94 +1,117 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script>
-      AFRAME.registerComponent('kisa-sistem', {
-        init: function () {
-          this.maca = document.querySelector('#maca');
-          this.scena = document.querySelector('a-marker');
-          for (let i = 0; i < 25; i++) {
-            this.stvoriRibu();
-          }
-        },
-        stvoriRibu: function () {
-          let riba = document.createElement('a-entity');
-          riba.setAttribute('gltf-model', 'Fish.glb');
-          riba.setAttribute('scale', '0.003 0.003 0.003');
-          riba.setAttribute('class', 'riba');
-          
-          // Nasumična pozicija "iznad" i "ispred" kamere
-          let x = (Math.random() - 0.5) * 4;
-          let y = 4 + Math.random() * 3; // Visoko iznad stola
-          let z = -2 - Math.random() * 2; // Dalje od tebe
-          
-          riba.setAttribute('position', {x: x, y: y, z: z});
-          
-          // ANIMACIJA: Padaju odozgo (Y=4) direktno na sto (Y=-3) i prema tebi (Z=2)
-          let brzina = 1200 + Math.random() * 1800;
-          riba.setAttribute('animation', `property: position; to: ${x} -3 2.5; dur: ${brzina}; easing: linear; loop: true`);
-          
-          this.scena.appendChild(riba);
-        },
-        tick: function () {
-          let ribe = document.querySelectorAll('.riba');
-          let macaPos = new THREE.Vector3();
-          this.maca.object3D.getWorldPosition(macaPos);
+<head>
+  <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
-          ribe.forEach((riba) => {
-            let ribaPos = new THREE.Vector3();
-            riba.object3D.getWorldPosition(ribaPos);
-            
-            // Detekcija sudara sa macom
-            let dist = macaPos.distanceTo(ribaPos);
-            if (dist < 0.7 && riba.getAttribute('visible') !== false) {
-              riba.setAttribute('visible', 'false');
-              setTimeout(() => { this.resetRiba(riba); }, 1000);
-            }
-            // Nestajanje kad udari u "sto"
-            if (ribaPos.y <= -2.9) {
-               riba.setAttribute('visible', 'false');
-               setTimeout(() => { this.resetRiba(riba); }, 100);
-            }
-          });
-        },
-        resetRiba: function(riba) {
-          let x = (Math.random() - 0.5) * 4;
-          riba.setAttribute('position', {x: x, y: 5, z: -2});
-          riba.setAttribute('visible', 'true');
+  <script>
+    AFRAME.registerComponent('lovac-sistem', {
+      init: function () {
+        this.maca = document.querySelector('#maca');
+        this.marker = document.querySelector('a-marker');
+
+        for (let i = 0; i < 30; i++) {
+          this.stvoriRibu();
         }
-      });
-    </script>
-  </head>
-  <body style="margin: 0; overflow: hidden;">
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" kisa-sistem>
-      <a-marker preset="hiro">
-        <a-entity id="maca-lokacija">
-          <a-entity 
-            id="maca"
-            gltf-model="Cat.glb" 
-            scale="1.4 1.4 1.4" 
-            position="0 -3 2.5" 
-            rotation="0 180 0"
-            animation__skok="property: position; from: 0 -3 2.5; to: 0 0 2.5; dur: 350; dir: alternate; loop: 1; startEvents: skoci">
-          </a-entity>
+      },
+
+      stvoriRibu: function () {
+        let riba = document.createElement('a-entity');
+        riba.setAttribute('gltf-model', 'Fish.glb');
+        riba.setAttribute('scale', '0.003 0.003 0.003');
+        riba.setAttribute('class', 'riba');
+
+        this.resetRiba(riba);
+
+        this.marker.appendChild(riba);
+      },
+
+      resetRiba: function(riba) {
+
+        let x = (Math.random() - 0.5) * 4;
+        let z = (Math.random() - 0.5) * 4;
+
+        let startY = 5 + Math.random() * 3;
+        let endY = -3;
+
+        riba.setAttribute('position', {x: x, y: startY, z: z});
+        riba.setAttribute('visible', 'true');
+
+        let brzina = 1500 + Math.random() * 1500;
+
+        riba.setAttribute('animation', {
+          property: 'position',
+          to: `${x} ${endY} ${z}`,
+          dur: brzina,
+          easing: 'linear'
+        });
+      },
+
+      tick: function () {
+        let ribe = document.querySelectorAll('.riba');
+        let macaPos = new THREE.Vector3();
+        this.maca.object3D.getWorldPosition(macaPos);
+
+        ribe.forEach((riba) => {
+          let ribaPos = new THREE.Vector3();
+          riba.object3D.getWorldPosition(ribaPos);
+
+          let dist = macaPos.distanceTo(ribaPos);
+
+          // Ako maca uhvati ribu
+          if (dist < 0.6 && riba.getAttribute('visible') !== false) {
+            riba.setAttribute('visible', 'false');
+            setTimeout(() => { this.resetRiba(riba); }, 1000);
+          }
+
+          // Ako riba dotakne sto
+          if (ribaPos.y <= -2.9 && riba.getAttribute('visible') !== false) {
+            riba.setAttribute('visible', 'false');
+            setTimeout(() => { this.resetRiba(riba); }, 300);
+          }
+        });
+      }
+    });
+  </script>
+</head>
+
+<body style="margin: 0; overflow: hidden;">
+  <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" lovac-sistem>
+
+    <a-marker preset="hiro">
+
+      <a-entity id="maca-wrapper">
+        <a-entity 
+          id="maca"
+          gltf-model="Cat.glb" 
+          scale="1.3 1.3 1.3" 
+          position="0 -3 0" 
+          rotation="0 180 0"
+          animation__skok="property: position; from: 0 -3 0; to: 0 0 0; dur: 300; dir: alternate; loop: 1; startEvents: skoci">
         </a-entity>
-      </a-marker>
-      <a-entity camera></a-entity>
-    </a-scene>
-    <script>
-      window.addEventListener('touchstart', () => { document.querySelector('#maca').emit('skoci'); });
-      // Precizno kretanje mace levo-desno
-      window.addEventListener('deviceorientation', function(event) {
-        let maca = document.querySelector('#maca');
-        if(maca) {
-          let tilt = event.gamma;
-          let moveX = Math.max(Math.min(tilt / 8, 3.5), -3.5);
-          maca.object3D.position.x = moveX;
-        }
-      });
-    </script>
-  </body>
+      </a-entity>
+
+    </a-marker>
+
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script>
+    // Skok na dodir
+    window.addEventListener('touchstart', () => {
+      document.querySelector('#maca').emit('skoci');
+    });
+
+    // Maca prati telefon levo-desno
+    window.addEventListener('deviceorientation', function(event) {
+      let maca = document.querySelector('#maca');
+      if(maca) {
+        let tilt = event.gamma;
+        let limit = Math.max(Math.min(tilt / 10, 3), -3);
+        maca.object3D.position.x = limit;
+      }
+    });
+  </script>
+</body>
 </html>
