@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
@@ -9,7 +9,7 @@
     AFRAME.registerComponent('lovac-sistem', {
       init: function () {
         this.maca = document.querySelector('#maca');
-        this.marker = document.querySelector('a-marker');
+        this.world = document.querySelector('#world');
 
         for (let i = 0; i < 30; i++) {
           this.stvoriRibu();
@@ -24,7 +24,7 @@
 
         this.resetRiba(riba);
 
-        this.marker.appendChild(riba);
+        this.world.appendChild(riba);
       },
 
       resetRiba: function(riba) {
@@ -32,13 +32,13 @@
         let x = (Math.random() - 0.5) * 4;
         let z = (Math.random() - 0.5) * 4;
 
-        let startY = 5 + Math.random() * 3;
+        let startY = 6 + Math.random() * 3;
         let endY = -3;
 
         riba.setAttribute('position', {x: x, y: startY, z: z});
         riba.setAttribute('visible', 'true');
 
-        let brzina = 1500 + Math.random() * 1500;
+        let brzina = 2000 + Math.random() * 1500;
 
         riba.setAttribute('animation', {
           property: 'position',
@@ -59,16 +59,16 @@
 
           let dist = macaPos.distanceTo(ribaPos);
 
-          // Ako maca uhvati ribu
+          // Sudar sa macom
           if (dist < 0.6 && riba.getAttribute('visible') !== false) {
             riba.setAttribute('visible', 'false');
-            setTimeout(() => { this.resetRiba(riba); }, 1000);
+            setTimeout(() => { this.resetRiba(riba); }, 800);
           }
 
-          // Ako riba dotakne sto
+          // Dodir sa stolom
           if (ribaPos.y <= -2.9 && riba.getAttribute('visible') !== false) {
             riba.setAttribute('visible', 'false');
-            setTimeout(() => { this.resetRiba(riba); }, 300);
+            setTimeout(() => { this.resetRiba(riba); }, 200);
           }
         });
       }
@@ -76,22 +76,24 @@
   </script>
 </head>
 
-<body style="margin: 0; overflow: hidden;">
+<body style="margin:0; overflow:hidden;">
   <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" lovac-sistem>
 
+    <!-- MARKER -->
     <a-marker preset="hiro">
+      <a-entity id="world">
 
-      <a-entity id="maca-wrapper">
+        <!-- MACA -->
         <a-entity 
           id="maca"
-          gltf-model="Cat.glb" 
-          scale="1.3 1.3 1.3" 
-          position="0 -3 0" 
+          gltf-model="Cat.glb"
+          scale="1.3 1.3 1.3"
+          position="0 -3 0"
           rotation="0 180 0"
           animation__skok="property: position; from: 0 -3 0; to: 0 0 0; dur: 300; dir: alternate; loop: 1; startEvents: skoci">
         </a-entity>
-      </a-entity>
 
+      </a-entity>
     </a-marker>
 
     <a-entity camera></a-entity>
@@ -103,7 +105,7 @@
       document.querySelector('#maca').emit('skoci');
     });
 
-    // Maca prati telefon levo-desno
+    // Levo-desno kretanje
     window.addEventListener('deviceorientation', function(event) {
       let maca = document.querySelector('#maca');
       if(maca) {
