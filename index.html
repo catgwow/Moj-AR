@@ -11,33 +11,45 @@
 
       #ui-score {
         position: fixed;
-        top: 18px;
+        top: 16px;
         left: 50%;
         transform: translateX(-50%);
         color: #fff;
-        font-size: 28px;
+        font-size: 30px;
         font-weight: bold;
-        font-family: 'Arial Rounded MT Bold', Arial, sans-serif;
-        text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+        font-family: Arial, sans-serif;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.9);
         z-index: 1000;
-        background: rgba(0, 0, 0, 0.5);
-        padding: 8px 28px;
+        background: rgba(0,0,0,0.55);
+        padding: 8px 30px;
         border-radius: 40px;
-        border: 2px solid rgba(255,255,255,0.2);
         pointer-events: none;
         white-space: nowrap;
+        letter-spacing: 1px;
+      }
+
+      #ui-flash {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 50px;
+        z-index: 2000;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.15s;
       }
 
       #ui-hint {
         position: fixed;
-        bottom: 28px;
+        bottom: 22px;
         left: 50%;
         transform: translateX(-50%);
-        color: rgba(255,255,255,0.9);
-        font-size: 14px;
+        color: rgba(255,255,255,0.88);
+        font-size: 13px;
         font-family: Arial, sans-serif;
-        background: rgba(0, 0, 0, 0.4);
-        padding: 6px 18px;
+        background: rgba(0,0,0,0.45);
+        padding: 5px 16px;
         border-radius: 20px;
         pointer-events: none;
         z-index: 1000;
@@ -46,147 +58,219 @@
 
       #ui-combo {
         position: fixed;
-        top: 80px;
+        top: 78px;
         left: 50%;
         transform: translateX(-50%);
         color: #FFD700;
-        font-size: 22px;
+        font-size: 24px;
         font-weight: bold;
         font-family: Arial, sans-serif;
-        text-shadow: 0 2px 6px rgba(0,0,0,0.9);
+        text-shadow: 0 2px 8px #000;
         z-index: 1000;
         pointer-events: none;
         opacity: 0;
-        transition: opacity 0.3s;
+        transition: opacity 0.25s;
+        white-space: nowrap;
       }
     </style>
 
     <script>
-      // ── Globalne promenljive za mačku ──────────────────────
-      let macaX    = 0;   // X pozicija (tilt levo/desno)
-      let jumpY    = 0;   // Y pozicija (skok)
-      let skace    = false;
-      let bodovi   = 0;
-      let combo    = 0;
+      // ═══════════════════════════════════════════════
+      //  GLOBALNE PROMENLJIVE
+      // ═══════════════════════════════════════════════
+      let macaX   = 0;      // levo/desno kretanje mačke
+      let macaZ   = 0;      // napred/nazad kretanje mačke
+      let jumpY   = 0;      // visina skoka
+      let skace   = false;  // da li je skok u toku
+      let bodovi  = 0;      // ukupan skor
+      let combo   = 0;      // combo brojač
+      let comboTimer = null;
 
-      // ── Glavni A-Frame komponent ───────────────────────────
+      // ── Skok: parabolična animacija ──────────────────
+      function skok() {
+        if (skace) return;
+        skace = true;
+        const H = 1.1;          // max visina
+        const T = 560;          // trajanje ms
+        const t0 = performance.now();
+
+        function loop(now) {
+          const t = Math.min((now - t0) / T, 1.0);
+          jumpY = H * Math.sin(Math.PI * t);
+          if (t < 1.0) requestAnimationFrame(loop);
+          else { jumpY = 0; skace = false; }
+        }
+        requestAnimationFrame(loop);
+      }
+
+      // ═══════════════════════════════════════════════
+      //  AFRAME KOMPONENT – IGRA
+      // ═══════════════════════════════════════════════
       AFRAME.registerComponent('igra', {
 
         init: function () {
           this.ribe  = [];
           this.maca  = null;
-          this.uiScore = document.getElementById('ui-score');
-          this.uiCombo = document.getElementById('ui-combo');
+          this.nomEl = null; // "nom" efekat entitet
 
-          // Spawn ribica s vremenskim razmakom
+          const self = this;
+
+          // Spawn ribica s razmakom da ne udare sve odjednom
           for (let i = 0; i < 12; i++) {
-            setTimeout(() => this.novaRiba(), i * 350);
+            setTimeout(function() { self.novaRiba(); }, i * 380);
           }
         },
 
-        // ── Kreira novu ribicu ─────────────────────────────
+        // ── Kreira novu ribicu ──────────────────────────
         novaRiba: function () {
           const riba = document.createElement('a-entity');
           riba.setAttribute('gltf-model', 'Fish.glb');
-          riba.setAttribute('scale', '0.003 0.003 0.003');
 
-          // Nasumična startna pozicija iznad markera
-          const startPos = this.randomStartPos();
-          riba.object3D.position.set(startPos.x, startPos.y, startPos.z);
+          // !! PODESI SKALU prema tvom Fish.glb modelu !!
+          // Ako su ribice premale → povećaj (npr. 0.05 0.05 0.05)
+          // Ako su prevelike     → smanji  (npr. 0.005 0.005 0.005)
+          riba.setAttribute('scale', '0.02 0.02 0.02');
 
-          // Brzina pada: 0.0006 – 0.0016 jedinica/ms  (pada 3–7 sekundi)
-          riba._brzina  = 0.0006 + Math.random() * 0.001;
-          riba._uhvacena = false;   // Flag da sprečimo dupli koliziju
+          const sp = this.randomStart();
+          riba.object3D.position.set(sp.x, sp.y, sp.z);
+
+          // Random rotacija za prirodniji izgled
+          riba.object3D.rotation.set(
+            Math.random() * Math.PI,
+            Math.random() * Math.PI * 2,
+            Math.random() * Math.PI
+          );
+
+          // Brzina pada (0.0006 – 0.0018 jed/ms ≈ 2–7 sekundi)
+          riba._speed  = 0.0006 + Math.random() * 0.0012;
+          riba._active = true;
 
           this.el.appendChild(riba);
           this.ribe.push(riba);
         },
 
-        // ── Nasumična pozicija na vrhu ─────────────────────
-        randomStartPos: function () {
+        // ── Nasumična startna pozicija iznad markera ────
+        randomStart: function () {
           return {
             x: (Math.random() - 0.5) * 3.0,
-            y: 4.0 + Math.random() * 2.5,   // 4 – 6.5 jedinica IZNAD stola
+            y: 5.0 + Math.random() * 3.0,   // 5–8 jed. iznad stola
             z: (Math.random() - 0.5) * 3.0
           };
         },
 
-        // ── Respawn ribice posle nestajanja ─────────────────
-        respawnRiba: function (riba, delay) {
-          riba._uhvacena = true;
+        // ── Efekat hvatanja: scale puls + "NOM!" ────────
+        eatEffect: function () {
+          // ① Flash emoji na ekranu
+          const flash = document.getElementById('ui-flash');
+          flash.textContent = ['😺','🐾','✨','💥'][Math.floor(Math.random()*4)];
+          flash.style.opacity = '1';
+          setTimeout(function() { flash.style.opacity = '0'; }, 380);
+
+          // ② Mačka se "napuše" (scale puls)
+          if (!this.maca) return;
+          const origScale = 1.3;
+          this.maca.object3D.scale.setScalar(origScale * 1.5);
+          setTimeout(function() {
+            if (this.maca) this.maca.object3D.scale.setScalar(origScale);
+          }.bind(this), 200);
+        },
+
+        // ── Sakrij ribicu i respawnuj je ────────────────
+        respawn: function (riba, delay, uhvacena) {
+          riba._active = false;
           riba.object3D.visible = false;
 
-          setTimeout(() => {
-            const p = this.randomStartPos();
-            riba.object3D.position.set(p.x, p.y, p.z);
-            riba._uhvacena = false;
+          if (uhvacena) this.eatEffect();
+
+          const self = this;
+          setTimeout(function () {
+            const sp = self.randomStart();
+            riba.object3D.position.set(sp.x, sp.y, sp.z);
+            // Nova nasumična rotacija za svaki pad
+            riba.object3D.rotation.set(
+              Math.random() * Math.PI,
+              Math.random() * Math.PI * 2,
+              Math.random() * Math.PI
+            );
+            riba._active = true;
             riba.object3D.visible = true;
           }, delay);
         },
 
-        // ── Prikaži combo tekst ──────────────────────────
+        // ── Combo displej ────────────────────────────────
         prikaziCombo: function (n) {
           if (n < 2) return;
-          const el = this.uiCombo;
-          el.textContent = n >= 5 ? `🔥 COMBO x${n}!` : `✨ Combo x${n}`;
+          const el = document.getElementById('ui-combo');
+          el.textContent = n >= 5
+            ? '🔥 SUPER COMBO x' + n + '!'
+            : '✨ Combo x' + n;
           el.style.opacity = '1';
-          clearTimeout(this._comboTimer);
-          this._comboTimer = setTimeout(() => { el.style.opacity = '0'; }, 1200);
+          clearTimeout(comboTimer);
+          comboTimer = setTimeout(function() {
+            el.style.opacity = '0';
+          }, 1300);
         },
 
-        // ── Tick: fizika + kolizija (svaki frame) ───────────
+        // ═══════════════════════════════════════════════
+        //  TICK – svaki frame
+        // ═══════════════════════════════════════════════
         tick: function (time, delta) {
 
-          // Ako marker nije vidljiv – pauziraj
+          // Pauziraj ako marker nije vidljiv
           if (!this.el.object3D.visible) return;
 
-          // Referencija na mačku
+          // Dohvati mačku
           if (!this.maca) {
             this.maca = this.el.querySelector('#maca');
             if (!this.maca) return;
           }
 
-          // ① Primeni kretanje mačke (tilt + skok)
+          // ── Primeni poziciju mačke ──────────────────
+          // X = tilt levo/desno (gamma)
+          // Y = skok (parabola)
+          // Z = fiksno (sto)
           this.maca.object3D.position.x = macaX;
           this.maca.object3D.position.y = jumpY;
+          this.maca.object3D.position.z = 0;
 
-          const macaPos = this.maca.object3D.position;
-          const dt      = delta || 16; // ms po frejmu
+          const mp = this.maca.object3D.position;
+          const dt = delta || 16;
 
-          // ② Obradi svaku ribicu
-          this.ribe.forEach(riba => {
-            if (riba._uhvacena || !riba.object3D.visible) return;
+          // ── Obradi svaku ribicu ─────────────────────
+          this.ribe.forEach(function(riba) {
+            if (!riba._active || !riba.object3D.visible) return;
 
-            const pos = riba.object3D.position;
+            const p = riba.object3D.position;
 
-            // ──── Pad nadole ────────────────────────────────
-            pos.y -= riba._brzina * dt;
+            // ① Pad nadole
+            p.y -= riba._speed * dt;
 
-            // ──── Lagana rotacija ribice ────────────────────
+            // ② Rotacija tokom pada (vizuelni efekat)
+            riba.object3D.rotation.x += 0.018;
             riba.object3D.rotation.y += 0.025;
 
-            // ──── Kolizija: MAČKA UHVATILA RIBICU ──────────
-            const dx   = macaPos.x - pos.x;
-            const dy   = macaPos.y - pos.y;
-            const dz   = macaPos.z - pos.z;
-            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            // ③ Kolizija: MAČKA ← → RIBICA
+            const dx = mp.x - p.x;
+            const dy = mp.y - p.y;
+            const dz = mp.z - p.z;
+            const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
 
-            if (dist < 0.45) {
+            if (dist < 0.5) {
+              // 🐟 UHVAĆENA!
               bodovi++;
               combo++;
-              this.uiScore.textContent = `🐟 ${bodovi}`;
+              document.getElementById('ui-score').textContent = '🐟 ' + bodovi;
               this.prikaziCombo(combo);
-              // Kratka pauza pre respawna (mačka "pojela" ribu)
-              this.respawnRiba(riba, 900 + Math.random() * 900);
-              return; // preskoči ground check
+              this.respawn(riba, 800 + Math.random() * 1200, true);
+              return;
             }
 
-            // ──── Ribica UDARILA U STO (y ≤ 0) ─────────────
-            if (pos.y <= 0) {
-              combo = 0; // resetuj combo kad promašiš
-              this.respawnRiba(riba, 200 + Math.random() * 600);
+            // ④ Ribica UDARILA U STO → nestaje ODMAH
+            if (p.y <= 0.05) {
+              combo = 0; // resetuj combo
+              this.respawn(riba, 100 + Math.random() * 400, false);
             }
-          });
+          }.bind(this));
         }
 
       }); // kraj komponente
@@ -196,24 +280,31 @@
   <body>
     <div id="ui-score">🐟 0</div>
     <div id="ui-combo"></div>
-    <div id="ui-hint">📱 Nagni za kretanje &nbsp;|&nbsp; Dodirni za skok</div>
+    <div id="ui-flash"></div>
+    <div id="ui-hint">↔️ Nagni levo/desno &nbsp;|&nbsp; 📲 Tresni napred/nazad za SKOK</div>
 
     <a-scene
       embedded
       arjs="sourceType: webcam; debugUIEnabled: false;"
       vr-mode-ui="enabled: false"
-      renderer="antialias: true; alpha: true">
+      renderer="antialias: true; alpha: true; colorManagement: true;">
 
-      <!-- ─── Hiro marker + igra komponent ────────────────── -->
+      <!-- ═══ HIRO MARKER ═══════════════════════════ -->
       <a-marker preset="hiro" igra>
 
-        <!-- MAČKA – startuje na sredini stola -->
+        <!--
+          MAČKA:
+          - position="0 0 0"  → stoji na markeru (stolu)
+          - rotation="0 180 0" → okrenut prema kameri
+          - Ako noge lebde: smanji Y na npr. position="0 -0.1 0"
+          - Ako ne gleda gore: promeni rotation na "-10 180 0"
+        -->
         <a-entity
           id="maca"
           gltf-model="Cat.glb"
           scale="1.3 1.3 1.3"
           position="0 0 0"
-          rotation="0 180 0">
+          rotation="-15 180 0">
         </a-entity>
 
       </a-marker>
@@ -221,36 +312,55 @@
       <a-entity camera></a-entity>
     </a-scene>
 
+    <!-- ═══════════════════════════════════════════════
+         KONTROLE
+    ════════════════════════════════════════════════ -->
     <script>
-      // ── Tilt: mačka se kreće levo-desno ───────────────────
+      // ── Kretanje levo/desno: nagib telefona (gamma) ──
+      // ── Skok: nagib telefona napred/nazad (beta delta)
+      let prevBeta     = null;
+      let jumpCooldown = false;   // sprečava višestruke skokove
+
       window.addEventListener('deviceorientation', function (e) {
-        const tilt = e.gamma || 0;
-        // Ograniči na [-2.5, 2.5] u marker koordinatama
-        macaX = Math.max(-2.5, Math.min(2.5, tilt / 11));
-      });
+        const gamma = e.gamma || 0;
+        const beta  = e.beta  || 0;
 
-      // ── Skok: parabolična animacija na dodir ──────────────
-      window.addEventListener('touchstart', function () {
-        if (skace) return;
-        skace = true;
+        // LEVO / DESNO kretanje mačke
+        // gamma: -90 (levo) … +90 (desno)
+        macaX = Math.max(-2.2, Math.min(2.2, gamma / 10));
 
-        const visina   = 0.85;   // max visina skoka (u jedinicama)
-        const trajanje = 520;    // ms ukupno
-        const pocetak  = performance.now();
-
-        function animirajSkok(now) {
-          const t = Math.min((now - pocetak) / trajanje, 1.0);
-          // Sinusna parabola: 0 → max → 0
-          jumpY = visina * Math.sin(Math.PI * t);
-          if (t < 1.0) {
-            requestAnimationFrame(animirajSkok);
-          } else {
-            jumpY  = 0;
-            skace  = false;
+        // SKOK: detektuj brzu promenu nagiba napred/nazad
+        if (prevBeta !== null && !jumpCooldown) {
+          const dBeta = Math.abs(beta - prevBeta);
+          if (dBeta > 22) {          // prag: 22° naglo naginjanje
+            jumpCooldown = true;
+            skok();
+            setTimeout(function() { jumpCooldown = false; }, 700);
           }
         }
+        prevBeta = beta;
+      });
 
-        requestAnimationFrame(animirajSkok);
+      // ── Backup: devicemotion (snažno tresenje) ───────
+      window.addEventListener('devicemotion', function (e) {
+        if (!e.acceleration || jumpCooldown) return;
+        // Na portertu telefona, X osa = napred/nazad tresenje
+        const sila = Math.abs(e.acceleration.x || 0)
+                   + Math.abs(e.acceleration.z || 0);
+        if (sila > 18) {
+          jumpCooldown = true;
+          skok();
+          setTimeout(function() { jumpCooldown = false; }, 700);
+        }
+      });
+
+      // ── Backup2: dodir ekrana ────────────────────────
+      window.addEventListener('touchstart', function () {
+        if (!jumpCooldown) {
+          jumpCooldown = true;
+          skok();
+          setTimeout(function() { jumpCooldown = false; }, 700);
+        }
       });
     </script>
   </body>
