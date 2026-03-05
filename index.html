@@ -3,22 +3,32 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.1/dist/mindar-image-aframe.prod.js"></script>
     <style>
-        #ui { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); color: #0f0; font-family: sans-serif; z-index: 1000; text-align: center; }
+        #ui { position: fixed; top: 10px; width: 100%; text-align: center; color: #22ff22; font-family: sans-serif; z-index: 1000; font-weight: bold; font-size: 20px; }
     </style>
 </head>
-<body>
-    <div id="ui">POENI: <span id="score">0</span><br>Pomeraj telefon da hvataš ribe!</div>
+<body style="margin: 0; overflow: hidden;">
+    <div id="ui">POENI: <span id="score">0</span><br>Usmeri kameru u HIRO marker!</div>
 
-    <a-scene mindar-image="imageTargetSrc: https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.1/examples/image-tracking/assets/card-example/card.mind;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
         
-        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        <a-marker preset="hiro">
+            
+            <a-entity 
+                id="macka" 
+                gltf-model="url(Cat.glb)" 
+                position="0 0 0" 
+                scale="0.05 0.05 0.05" 
+                animation-mixer="clip: walk">
+            </a-entity>
 
-        <a-entity id="player" gltf-model="url(Cat.glb)" position="0 -0.5 -1" scale="0.02 0.02 0.02" animation-mixer="clip: walk"></a-entity>
+            <a-entity id="fish-container"></a-entity>
 
-        <a-entity id="fish-container"></a-entity>
+        </a-marker>
+
+        <a-entity camera></a-entity>
     </a-scene>
 
     <script>
@@ -28,31 +38,26 @@
         function spawnFish() {
             const fish = document.createElement('a-entity');
             fish.setAttribute('gltf-model', 'url(Fish.glb)');
-            // Nasumicna pozicija iznad solje
-            let x = (Math.random() - 0.5) * 2;
-            fish.setAttribute('position', `${x} 2 -3`);
-            fish.setAttribute('scale', '0.05 0.05 0.05');
             
-            // Animacija padanja
-            fish.setAttribute('animation', `property: position; to: ${x} -2 -3; dur: 4000; easing: linear`);
+            // Ribica se stvara 2 metra iznad markera (solje)
+            fish.setAttribute('position', '0 2 0'); 
+            fish.setAttribute('scale', '0.03 0.03 0.03');
+            
+            // Animacija: Ribica pada sa visine na marker
+            fish.setAttribute('animation', 'property: position; to: 0 0 0; dur: 3000; easing: linear');
             
             container.appendChild(fish);
 
-            // Provera sudara (da li je macka 'pojela' ribu)
-            setInterval(() => {
-                let fishPos = fish.object3D.position;
-                if (fishPos.y < -0.4 && fishPos.y > -0.6) {
-                    score++;
-                    document.querySelector('#score').innerText = score;
-                    fish.remove();
-                }
-            }, 100);
-
-            // Brisanje ribe ako padne na pod
-            setTimeout(() => { if(fish) fish.remove(); }, 4000);
+            // Automatsko skupljanje poena kad riba "padne" do macke
+            setTimeout(() => {
+                score++;
+                document.querySelector('#score').innerText = score;
+                if(fish.parentNode) container.removeChild(fish);
+            }, 3000);
         }
 
-        setInterval(spawnFish, 2000);
+        // Svake 3 sekunde ispada po jedna ribica
+        setInterval(spawnFish, 3000);
     </script>
 </body>
 </html>
