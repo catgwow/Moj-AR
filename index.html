@@ -1,54 +1,48 @@
 <!DOCTYPE html>
-<html lang="sr">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR Mačka Animacija</title>
+    <title>AR Igra - Mačka</title>
     <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
     <style>
-        body { margin: 0; background-color: #000; overflow: hidden; }
-        model-viewer { width: 100vw; height: 100vh; --poster-color: transparent; }
+        body { margin: 0; background-color: #000; }
+        model-viewer { width: 100vw; height: 100vh; }
         .ar-button {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            padding: 16px 32px; background: #22ff22; color: black;
-            border: none; border-radius: 50px; font-weight: bold; font-size: 18px;
-            box-shadow: 0 4px 15px rgba(0,255,0,0.4); z-index: 100;
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+            padding: 15px 35px; background: #00ff00; border: none; border-radius: 50px;
+            font-weight: bold; font-size: 18px; color: black; z-index: 1000;
         }
     </style>
 </head>
 <body>
 
     <model-viewer 
-        id="macka"
+        id="macka-model"
         src="Cat.glb" 
         ar 
         ar-modes="webxr scene-viewer quick-look" 
         camera-controls 
         shadow-intensity="1" 
-        ar-placement="floor"
         autoplay
-        crossorigin="anonymous">
+        ar-placement="floor"
+        interaction-prompt="auto">
         
         <button slot="ar-button" class="ar-button">
-            🐾 PUSTI MAČKU U SOBU
+            START AR IGRICA
         </button>
 
     </model-viewer>
 
     <script>
-        const modelViewer = document.querySelector("#macka");
+        const modelViewer = document.querySelector("#macka-model");
 
-        // Čim se model učita, tražimo animaciju
+        // Forsiranje animacije za Android i iPhone pretraživače
         modelViewer.addEventListener("load", () => {
-            const animations = modelViewer.getAvailableAnimations();
-            
-            if (animations.length > 0) {
-                // Puštamo prvu animaciju na listi (rep/glava)
-                modelViewer.animationName = animations[0];
+            const availableAnimations = modelViewer.getAvailableAnimations();
+            if (availableAnimations.length > 0) {
+                // Postavlja prvu dostupnu animaciju (rep, glava, hod)
+                modelViewer.animationName = availableAnimations[0];
                 modelViewer.play();
-                console.log("Pokrenuta animacija:", animations[0]);
-            } else {
-                console.log("Ovaj model nema ugrađene animacije.");
             }
         });
     </script>
