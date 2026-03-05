@@ -3,64 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AR Igra - Macka i Ribe</title>
     <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: sans-serif; }
-        
+        body { margin: 0; background: #000; overflow: hidden; }
         #ui {
-            position: absolute; top: 30px; width: 100%; text-align: center;
-            color: #22ff22; font-weight: bold; z-index: 100; font-size: 20px;
-            text-shadow: 2px 2px 5px #000;
+            position: absolute; top: 20px; width: 100%; text-align: center;
+            color: #22ff22; font-family: Arial; font-weight: bold; z-index: 100;
         }
-
-        /* Dugme koje se ne gubi na iPhone-u */
         .ar-button {
             position: fixed;
-            bottom: 50px; /* Pomereno na dno ekrana */
+            bottom: 40px; /* Ovo spušta dugme na dno za iPhone */
             left: 50%;
             transform: translateX(-50%);
-            padding: 20px 40px;
-            background-color: #22ff22;
+            padding: 15px 35px;
+            background: #22ff22;
             color: #000;
             border: none;
             border-radius: 50px;
             font-weight: bold;
-            font-size: 22px;
-            z-index: 9999; /* Da uvek bude ispred svega */
-            box-shadow: 0 5px 20px rgba(0,255,0,0.5);
+            font-size: 18px;
+            z-index: 1000;
         }
     </style>
 </head>
 <body>
-
-    <div id="ui">POENI: <span id="score">0</span><br>Usmeri telefon ka podu!</div>
+    <div id="ui">POENI: 0<br>Pomeraj telefon da nađeš pod!</div>
 
     <model-viewer 
-        id="cat-game"
         src="Cat.glb" 
         ar 
         ar-modes="webxr scene-viewer quick-look" 
         camera-controls 
-        autoplay
-        scale="0.03 0.03 0.03" 
+        autoplay 
+        animation-name="walk"
+        scale="0.02 0.02 0.02" 
         ar-placement="floor"
         shadow-intensity="1">
         
-        <button slot="ar-button" class="ar-button">POKRENI IGRICU</button>
-
+        <button slot="ar-button" class="ar-button">START IGRICA</button>
     </model-viewer>
 
     <script>
-        const modelViewer = document.querySelector("#cat-game");
-        
-        // Svake 3 sekunde sistem proverava da li je AR aktivan i 'pusta' ribicu
-        setInterval(() => {
-            if (modelViewer.isPresenting) {
-                // Tvoj fajl Fish.glb ce se pojaviti u AR-u
-                console.log("Riba izlazi iz solje!");
-            }
-        }, 3000);
+        // Logika za 'kišu' ribica (pojavljivanje Fish.glb modela)
+        // će biti dodata čim potvrdiš da mačka konačno hoda
     </script>
 </body>
 </html>
