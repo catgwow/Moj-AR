@@ -17,20 +17,28 @@
 <body>
 
     <model-viewer 
+        id="macka"
         src="Cat.glb" 
         ar 
         ar-modes="scene-viewer webxr quick-look" 
         ar-scale="auto"
         camera-controls 
         autoplay
-        shadow-intensity="1.5" 
-        shadow-softness="1"
+        shadow-intensity="1" 
         ar-placement="floor"
-        interaction-prompt="none">
+        scale="0.2 0.2 0.2">
         
-        <button slot="ar-button" class="ar-button">POKRENI IGRICU</button>
+        <button slot="ar-button" class="ar-button">START AR IGRICA</button>
         
     </model-viewer>
+
+    <script>
+        const modelViewer = document.querySelector("#macka");
+        modelViewer.addEventListener("load", () => {
+            // Usporavamo animaciju na pola brzine (0.5) da ne bi pobegla
+            modelViewer.timeScale = 0.5;
+        });
+    </script>
 
 </body>
 </html>
