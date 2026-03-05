@@ -2,30 +2,45 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>AR Igra - Mačka</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AR Igra</title>
     <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
     <style>
         body { margin: 0; background-color: #000; }
-        model-viewer { width: 100vw; height: 100vh; }
+        model-viewer { 
+            width: 100vw; 
+            height: 100vh; 
+            --poster-color: transparent;
+        }
+        /* Popravljeno dugme da se uvek vidi na sredini iznad donje trake */
         .ar-button {
-            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-            padding: 15px 35px; background: #00ff00; border: none; border-radius: 50px;
-            font-weight: bold; font-size: 18px; color: black; z-index: 1000;
+            position: absolute;
+            bottom: 20%; 
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 18px 30px;
+            background-color: #22ff22;
+            color: #000;
+            border: none;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 18px;
+            z-index: 9999;
+            display: block !important;
         }
     </style>
 </head>
 <body>
 
     <model-viewer 
-        id="macka-model"
+        id="macka"
         src="Cat.glb" 
         ar 
-        ar-modes="webxr scene-viewer quick-look" 
+        ar-modes="scene-viewer webxr quick-look" 
         camera-controls 
         shadow-intensity="1" 
         autoplay
-        ar-placement="floor"
-        interaction-prompt="auto">
+        ar-placement="floor">
         
         <button slot="ar-button" class="ar-button">
             START AR IGRICA
@@ -34,14 +49,11 @@
     </model-viewer>
 
     <script>
-        const modelViewer = document.querySelector("#macka-model");
-
-        // Forsiranje animacije za Android i iPhone pretraživače
+        const modelViewer = document.querySelector("#macka");
         modelViewer.addEventListener("load", () => {
-            const availableAnimations = modelViewer.getAvailableAnimations();
-            if (availableAnimations.length > 0) {
-                // Postavlja prvu dostupnu animaciju (rep, glava, hod)
-                modelViewer.animationName = availableAnimations[0];
+            const animations = modelViewer.getAvailableAnimations();
+            if (animations.length > 0) {
+                modelViewer.animationName = animations[0];
                 modelViewer.play();
             }
         });
